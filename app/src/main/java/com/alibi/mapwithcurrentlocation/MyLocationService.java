@@ -54,35 +54,11 @@ public class MyLocationService extends Service {
                 userDetailsPrefrennce.saveStringData(SharedPreferenceConfig.LONG,String.valueOf(locationResult.getLastLocation().getLongitude()));
                 Log.d("LocationUpdate", latitude + "" + longitude);
                 getUpdateLocation(userDetailsPrefrennce.getStringData(SharedPreferenceConfig.TOKEN),userDetailsPrefrennce.getStringData(SharedPreferenceConfig.LAT),userDetailsPrefrennce.getStringData(SharedPreferenceConfig.LONG));
-                Toast.makeText(getApplicationContext(),"Update Location Successfully",Toast.LENGTH_LONG).show();
 
             }
         }
     };
 
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null){
-            String action = intent.getAction();
-            if (action != null){
-                if (action.equals(Constant.ACTION_START_LOCATION_SERVICE)){
-                    startLocationService();
-                }else if (action.equals(Constant.ACTION_STOP_LOCATION_SERVICE)){
-                    stopLocationService();
-                }
-            }
-        }
-        return super.onStartCommand(intent,flags,startId);
-
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        Toast.makeText(getApplicationContext(), "service destroy", Toast.LENGTH_LONG).show();
-
-    }
 
     @Nullable
     @Override
@@ -118,8 +94,8 @@ public class MyLocationService extends Service {
             }
         }
         LocationRequest locationRequest = new LocationRequest();
-        locationRequest.setInterval(3000);
-        locationRequest.setFastestInterval(3000);
+        locationRequest.setInterval(60000);
+        locationRequest.setFastestInterval(60000);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -135,6 +111,21 @@ public class MyLocationService extends Service {
                 .removeLocationUpdates(locationCallback);
         stopForeground(true);
         stopSelf();
+    }
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null){
+            String action = intent.getAction();
+            if (action != null){
+                if (action.equals(Constant.ACTION_START_LOCATION_SERVICE)){
+                    startLocationService();
+                }else if (action.equals(Constant.ACTION_STOP_LOCATION_SERVICE)){
+                    stopLocationService();
+                }
+            }
+        }
+        return super.onStartCommand(intent,flags,startId);
+
     }
 
     private void getUpdateLocation(String tok, String lat, String log) {
@@ -163,7 +154,6 @@ public class MyLocationService extends Service {
             public void onSuccess(GetLocationResponse getLocationResponse) {
                 updatedLocations.addAll(getLocationResponse.getLocations());
                 Log.d("bcc", updatedLocations + "");
-//                Toast.makeText(MainActivity.this, "success", Toast.LENGTH_LONG).show();
             }
 
             @Override
