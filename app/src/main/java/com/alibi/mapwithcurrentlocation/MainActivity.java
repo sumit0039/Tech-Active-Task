@@ -1,7 +1,9 @@
 package com.alibi.mapwithcurrentlocation;
 
 import android.Manifest;
+import android.app.ActivityManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
@@ -71,7 +73,6 @@ import java.util.Locale;
 import static com.example.easywaylocation.EasyWayLocation.LOCATION_SETTING_REQUEST_CODE;
 
 public class MainActivity extends FragmentActivity{
-    private Handler mHandler;
     FusedLocationProviderClient fusedLocationProviderClient;
     LocationRequest locationRequest;
     SupportMapFragment supportMapFragment;
@@ -79,25 +80,24 @@ public class MainActivity extends FragmentActivity{
     SharedPreferences sharedPreferences;
     UserDetailsPrefrennce userDetailsPrefrennce;
     MapApiController mapApiController;
-    Location location;
-    private final LocationCallback locationCallback = new LocationCallback() {
-
-        @Override
-        public void onLocationResult(@NonNull @NotNull LocationResult locationResult) {
-            if (locationResult == null) {
-                return;
-            }
-            for (Location eachLocation : locationResult.getLocations()) {
-                Toast.makeText(MainActivity.this,"chal nahi raha hi",Toast.LENGTH_LONG).show();
-                userDetailsPrefrennce.saveStringData(SharedPreferenceConfig.LAT,String.valueOf(eachLocation.getLatitude()));
-                userDetailsPrefrennce.saveStringData(SharedPreferenceConfig.LONG,String.valueOf(eachLocation.getLongitude()));
-                getUpdateLocation(userDetailsPrefrennce.getStringData(SharedPreferenceConfig.TOKEN), String.valueOf(eachLocation.getLatitude()), String.valueOf(eachLocation.getLongitude()));
-                getLocation(userDetailsPrefrennce.getStringData(SharedPreferenceConfig.TOKEN));
-
-                Log.d("jkdfsdf",userDetailsPrefrennce.getStringData(SharedPreferenceConfig.TOKEN)+"");
-            }
-        }
-    };
+//    private final LocationCallback locationCallback = new LocationCallback() {
+//
+//        @Override
+//        public void onLocationResult(@NonNull @NotNull LocationResult locationResult) {
+//            if (locationResult == null) {
+//                return;
+//            }
+//            for (Location eachLocation : locationResult.getLocations()) {
+//                Toast.makeText(MainActivity.this,"chal nahi raha hi",Toast.LENGTH_LONG).show();
+//                userDetailsPrefrennce.saveStringData(SharedPreferenceConfig.LAT,String.valueOf(eachLocation.getLatitude()));
+//                userDetailsPrefrennce.saveStringData(SharedPreferenceConfig.LONG,String.valueOf(eachLocation.getLongitude()));
+//                getUpdateLocation(userDetailsPrefrennce.getStringData(SharedPreferenceConfig.TOKEN), String.valueOf(eachLocation.getLatitude()), String.valueOf(eachLocation.getLongitude()));
+//                getLocation(userDetailsPrefrennce.getStringData(SharedPreferenceConfig.TOKEN));
+//
+//                Log.d("jkdfsdf",userDetailsPrefrennce.getStringData(SharedPreferenceConfig.TOKEN)+"");
+//            }
+//        }
+//    };
     List<com.alibi.mapwithcurrentlocation.model.Location> updatedLocations;
     private GoogleMap mMap;
 
@@ -107,8 +107,6 @@ public class MainActivity extends FragmentActivity{
         super.onCreate(savedInstanceState);
         mainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main);
 
-//        easyWayLocation = new EasyWayLocation(this, false,false,this);
-
 
         locationRequest = LocationRequest.create();
         locationRequest.setInterval(3000);
@@ -117,11 +115,8 @@ public class MainActivity extends FragmentActivity{
 
         userDetailsPrefrennce = new UserDetailsPrefrennce(this);
         userDetailsPrefrennce.saveBooleanData(SharedPreferenceConfig.IS_USER_LOGIN, true);
-//        instance = this;
         mapApiController = new MapApiController(this);
         updatedLocations = new ArrayList<>();
-//        addUpdatedLocations();
-        sharedPreferences = getSharedPreferences("Map", MODE_PRIVATE);
 
 
 
@@ -140,7 +135,6 @@ public class MainActivity extends FragmentActivity{
                     @Override
                     public void onPermissionGranted(PermissionGrantedResponse permissionGrantedResponse) {
                         showCurrentLocationInMap();
-//                        UpdateLocation();
                     }
 
                     @Override
@@ -158,6 +152,7 @@ public class MainActivity extends FragmentActivity{
         mainBinding.logout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                stopServiceLocation();
                 showAlertBoxForLogout();
             }
         });
@@ -165,7 +160,7 @@ public class MainActivity extends FragmentActivity{
         mainBinding.fetchLocation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startService(new Intent(MainActivity.this,MyLocationService.class));
+                startLocationService();
                 mMap.clear();
                 for (int i = 0; i < updatedLocations.size(); i++) {
                     if (i == updatedLocations.size() - 1) {
@@ -179,6 +174,42 @@ public class MainActivity extends FragmentActivity{
                 }
             }
         });
+    }
+    private boolean isLocationServiceRunning(){
+        ActivityManager activityManager =
+                (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        if (activityManager != null){
+            for (ActivityManager.RunningServiceInfo serviceInfo :
+                                  activityManager.getRunningServices(Integer.MAX_VALUE)){
+                if (LocationServices.class.getName().equals(serviceInfo.service.getClassName())){
+                    if (serviceInfo.foreground){
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        return false;
+    }
+    private void startLocationService(){
+        if (!isLocationServiceRunning()){
+            Intent intent = new Intent(getApplicationContext(),MyLocationService.class);
+            intent.setAction(Constant.ACTION_START_LOCATION_SERVICE);
+            Log.d("dhbjsdv",userDetailsPrefrennce.getStringData(SharedPreferenceConfig.TOKEN)+"");
+            Log.d("dhbjsdv",userDetailsPrefrennce.getStringData(SharedPreferenceConfig.LAT)+"");
+            Log.d("dhbjsdv",userDetailsPrefrennce.getStringData(SharedPreferenceConfig.LONG)+"");
+            startService(intent);
+
+
+        }
+    }
+    private void stopServiceLocation(){
+        if (isLocationServiceRunning()){
+            Intent intent = new Intent(getApplicationContext(),MyLocationService.class);
+            intent.setAction(Constant.ACTION_STOP_LOCATION_SERVICE);
+            startService(intent);
+            Toast.makeText(this,"Location service stoped",Toast.LENGTH_LONG).show();
+        }
     }
 
     private void addMarkerToMap(com.alibi.mapwithcurrentlocation.model.Location location) {
@@ -258,12 +289,12 @@ public class MainActivity extends FragmentActivity{
                 .setPositiveButton("YES", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
+                        stopServiceLocation();
                         dialog.dismiss();
                         StringUtils.deleteSharedPreferenceDataForlogout(MainActivity.this);
                         StringUtils.launchActivity(MainActivity.this, LoginActivity.class);
                         getLoggedOut(userDetailsPrefrennce.getStringData(SharedPreferenceConfig.TOKEN));
                         finish();
-                        stopService(new Intent(MainActivity.this,MyLocationService.class));
                     }
                 })
                 .setNegativeButton("NO", new DialogInterface.OnClickListener() {
@@ -293,99 +324,66 @@ public class MainActivity extends FragmentActivity{
             }
         });
     }
-
-//    public void updateTextView(final String value) {
-//        MainActivity.this.runOnUiThread(new Runnable() {
+//    private void checkSettingAndStartLocationUpdate() {
+//
+//        LocationSettingsRequest locationSettingsRequest = new LocationSettingsRequest
+//                .Builder()
+//                .addLocationRequest(locationRequest)
+//                .build();
+//        SettingsClient settingsClient = LocationServices.getSettingsClient(this);
+//
+//        Task<LocationSettingsResponse> locationSettingsResponseTask = settingsClient.checkLocationSettings(locationSettingsRequest);
+//
+//        locationSettingsResponseTask.addOnSuccessListener(new OnSuccessListener<LocationSettingsResponse>() {
 //            @Override
-//            public void run() {
-//                mainBinding.latLog.setText(value);
+//            public void onSuccess(LocationSettingsResponse locationSettingsResponse) {
+//                // settings of device are satisfied and we can start locationUpdates
+//                StartLocationUpdate();
 //            }
 //        });
-//    }
 //
-//    private PendingIntent getPendingIntent() {
-//        Intent intent = new Intent(this, MyLocationService.class);
-//        intent.setAction(MyLocationService.ACTION_PROCESS_UPDATE);
-//        return PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-//    }
+//        locationSettingsResponseTask.addOnFailureListener(new OnFailureListener() {
+//            @Override
+//            public void onFailure(@NonNull @NotNull Exception e) {
+//                if (e instanceof ResolvableApiException) {
+//                    ResolvableApiException resolvableApiException = (ResolvableApiException) e;
+//                    try {
+//                        resolvableApiException.startResolutionForResult(MainActivity.this, 1001);
+//                    } catch (IntentSender.SendIntentException sendIntentException) {
+//                        sendIntentException.printStackTrace();
+//                    }
 //
-//    private void UpdateLocation() {
-//        buildLocationRequest();
-//        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+//                }
+//            }
+//        });
+//
+//    }
+
+//    private void StartLocationUpdate() {
+//        Toast.makeText(MainActivity.this,"chal raha hi",Toast.LENGTH_LONG).show();
 //        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-//            return;
+//
 //        }
-//        fusedLocationProviderClient.requestLocationUpdates(locationRequest, getPendingIntent());
+//        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
+//
+//    }
+//    private void StopLocationUpdate(){
+//        fusedLocationProviderClient.removeLocationUpdates(locationCallback);
+//
 //    }
 //
-//    private void buildLocationRequest() {
-//        locationRequest = new LocationRequest();
-//        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-//        locationRequest.setInterval(4000);
-//        locationRequest.setFastestInterval(3000);
-//        locationRequest.setSmallestDisplacement(10f);
+//    @Override
+//    protected void onStart() {
+//        super.onStart();
+//        Toast.makeText(MainActivity.this,"Start",Toast.LENGTH_LONG).show();
+//        checkSettingAndStartLocationUpdate();
 //    }
-
-    private void checkSettingAndStartLocationUpdate() {
-
-        LocationSettingsRequest locationSettingsRequest = new LocationSettingsRequest
-                .Builder()
-                .addLocationRequest(locationRequest)
-                .build();
-        SettingsClient settingsClient = LocationServices.getSettingsClient(this);
-
-        Task<LocationSettingsResponse> locationSettingsResponseTask = settingsClient.checkLocationSettings(locationSettingsRequest);
-
-        locationSettingsResponseTask.addOnSuccessListener(new OnSuccessListener<LocationSettingsResponse>() {
-            @Override
-            public void onSuccess(LocationSettingsResponse locationSettingsResponse) {
-                // settings of device are satisfied and we can start locationUpdates
-                StartLocationUpdate();
-            }
-        });
-
-        locationSettingsResponseTask.addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull @NotNull Exception e) {
-                if (e instanceof ResolvableApiException) {
-                    ResolvableApiException resolvableApiException = (ResolvableApiException) e;
-                    try {
-                        resolvableApiException.startResolutionForResult(MainActivity.this, 1001);
-                    } catch (IntentSender.SendIntentException sendIntentException) {
-                        sendIntentException.printStackTrace();
-                    }
-
-                }
-            }
-        });
-
-    }
-
-    private void StartLocationUpdate() {
-        Toast.makeText(MainActivity.this,"chal raha hi",Toast.LENGTH_LONG).show();
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-
-        }
-        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
-
-    }
-    private void StopLocationUpdate(){
-        fusedLocationProviderClient.removeLocationUpdates(locationCallback);
-
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Toast.makeText(MainActivity.this,"Start",Toast.LENGTH_LONG).show();
-        checkSettingAndStartLocationUpdate();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        StopLocationUpdate();
-    }
+//
+//    @Override
+//    protected void onStop() {
+//        super.onStop();
+//        StopLocationUpdate();
+//    }
 
     @Override
     public void onBackPressed() {

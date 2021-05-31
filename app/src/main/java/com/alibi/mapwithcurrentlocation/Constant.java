@@ -1,4 +1,4 @@
-package com.alibi.mapwithcurrentlocation.config.network;
+package com.alibi.mapwithcurrentlocation;
 
  class Constant {
      static final int LOCATION_SERVICE_ID = 175;

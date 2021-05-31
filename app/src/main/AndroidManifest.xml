@@ -8,6 +8,7 @@
     <uses-permission android:name="com.testing.svma.permission.MAPS_RECEIVE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="com.google.android.providers.gsf.permission.READ_GSERVICES" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
     <application
         android:allowBackup="true"
@@ -32,6 +33,7 @@
         </activity>
         <service
             android:name=".MyLocationService"
+            android:enabled="true"
             android:exported="false"/>
     </application>
 
