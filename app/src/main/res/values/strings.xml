@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">MapWithCurrentLocation</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="login">LogIn</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="i_don_t_have_an_account_yet">I Don\'t have Account yet.</string>
+    <string name="create_one">Create One</string>
+    <string name="kanhaiya">Kanhaiya</string>
+    <string name="welcome_mr">Welcome Mr.</string>
+    <string name="logout_icon">logout_icon</string>
+    <string name="logout">Logout</string>
+    <string name="fetch_location">Fetch Location</string>
+</resources>
